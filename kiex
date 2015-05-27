@@ -67,7 +67,8 @@ if [ "$INSTALL_KIEX" = 1 ] ; then
     exec "$KIEX_HOME/bin/kiex" selfupdate
   else
     mkdir -p "${KIEX_HOME}/bin"
-    \curl -sSL -o "$KIEX_HOME/bin/kiex" https://raw.githubusercontent.com/taylor/kiex/master/kiex
+    curl_with_args "-sSL -o \"$KIEX_HOME/bin/kiex\" https://raw.githubusercontent.com/taylor/kiex/master/kiex"
+
     chmod +x "$KIEX_HOME/bin/kiex"
 
     echo "Running initial environment setup"
@@ -85,17 +86,17 @@ function usage() {
   me=$(basename $0)
   #echo "$me <list [known]|install <version>|use <version>>"
   echo "$me commands:"
-  printf "%b" "    list                      - shows currently installed elixirs\n"
-  printf "%b" "    list known                - shows available elixirs releases\n"
-  printf "%b" "    list branches             - shows available elixirs branches\n"
+  printf "%b" "    list                      - shows currently installed Elixirs\n"
+  printf "%b" "    list known                - shows available Elixir releases\n"
+  printf "%b" "    list branches             - shows available Elixir branches\n"
   printf "%b" "    install <version>         - installs the given release version\n"
-  printf "%b" "    use <version> [--default] - use the given version for this shell\n"
-  printf "%b" "    shell <version>           - use the given version for this shell\n"
-  printf "%b" "    default <version>         - sets default version to be used\n"
+  printf "%b" "    use <version> [--default] - uses the given version for this shell\n"
+  printf "%b" "    shell <version>           - uses the given version for this shell\n"
+  printf "%b" "    default <version>         - sets the default version to be used\n"
 #  printf "%b" "    setup             - install kiex into \$HOME/.kiex\n"
-  printf "%b" "    selfupdate                - update kiex itself\n"
-  printf "%b" "    implode                   - removes kiex and all installed elixirs\n"
-  printf "%b" "    reset                     - resets default elixir version to null\n"
+  printf "%b" "    selfupdate                - updates kiex itself\n"
+  printf "%b" "    implode                   - removes kiex and all installed Elixirs\n"
+  printf "%b" "    reset                     - resets default Elixir version to null\n"
 }
 
 
@@ -310,11 +311,11 @@ function setup() {
   [[ $? = 0 ]] && in_bashrc=$HOME/.bashrc
   grep -sv '^#' ~/.profile | grep -isq kiex
   [[ $? = 0 ]] && in_profile=$HOME/.profile
-  grep -sv '^#' ~/.bash_profile | grep -isq kiex 
+  grep -sv '^#' ~/.bash_profile | grep -isq kiex
   [[ $? = 0 ]] && in_bash_profile=$HOME/.bash_profile
-  grep -sv '^#' ~/.zshrc | grep -isq kiex 
+  grep -sv '^#' ~/.zshrc | grep -isq kiex
   [[ $? = 0 ]] && in_zshrc=$HOME/.zshrc
-  grep -sv '^#' ~/.zsh_profile | grep -isq kiex 
+  grep -sv '^#' ~/.zsh_profile | grep -isq kiex
   [[ $? = 0 ]] && in_zsh_profile=$HOME/.zsh_profile
 
   str=""
@@ -386,7 +387,7 @@ function self_update() {
   cp kiex kiex.bak-$D
 
   mkdir -p "$KIEX_HOME/bin"
-  \curl -L -H "User-Agent: $USER_AGENT" -sSL -o "$KIEX_HOME/bin/kiex" "$kiex_url"
+  curl_with_args "-L -H \"User-Agent: $USER_AGENT\" -sSL -o \"$KIEX_HOME/bin/kiex\" \"$kiex_url\""
   chmod +x "$KIEX_HOME/bin/kiex"
   #exec $KIEX_HOME/bin/kiex setup update
   exec $KIEX_HOME/bin/kiex selfupdatereloaded
@@ -421,7 +422,7 @@ function kiex_implode() {
 function get_elixir_branches() {
   # TODO: add cache support
   # x=$(curl -i -H "User-Agent: $USER_AGENT" -H "Accept: application/json" -qs https://api.github.com/repos/elixir-lang/elixir/branches |grep '"name":|ETag:')
-  x=$(\curl -i -H "User-Agent: $USER_AGENT" -H "Accept: application/json" -qs https://api.github.com/repos/elixir-lang/elixir/branches |grep '"name":')
+  x=$(curl_with_args "-i -H \"User-Agent: $USER_AGENT\" -H \"Accept: application/json\" -qs https://api.github.com/repos/elixir-lang/elixir/branches")
   x=$(echo $x | tr ',' '\n' |grep name\":|sed 's/.*name":"\([^"]*\)"/\1/')
   #x=${x//\"name\":/}
   #x=${x//[\",]/}
@@ -467,7 +468,7 @@ function get_known_elixir_releases() {
 #   xetag=$(echo $x|grep ETag)
 #   x=$(echo $x|grep -v ETag)
 
-  x=$(\curl -i -H "User-Agent: $USER_AGENT" -H 'Accept: application/json' -qs https://api.github.com/repos/elixir-lang/elixir/releases | tr ',' '\n' | grep '"tag_name":')
+  x=$(curl_with_args "-i -H \"User-Agent: $USER_AGENT\" -H 'Accept: application/json' -qs https://api.github.com/repos/elixir-lang/elixir/releases" | tr ',' '\n' | grep '"tag_name":')
   x=${x//\"tag_name\":/}
   x=${x//[\",]/}
   x=${x//v/}
@@ -807,6 +808,14 @@ function validate_install() {
     echo "Please run $me setup"
     exit 1
     #setup
+  fi
+}
+
+function curl_with_args() {
+  if [ -n $KIEX_OAUTH_TOKEN ]; then
+    \curl -H "Authorization: token $KIEX_OAUTH_TOKEN" $@
+  else
+    \curl $@
   fi
 }
 
